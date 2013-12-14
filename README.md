@@ -33,7 +33,7 @@ Usage
 To set up a toolkit for a new user account, first clone the toolkit repository
 into a local folder:
 
-```shell
+```bash
 $ mkdir ~/util && cd ~/util
 $ git clone git@github.com:greglook/toolkit.git
 $ cd toolkit
@@ -42,7 +42,7 @@ $ cd toolkit
 Then clone the desired package sets and link to them from the `packages`
 directory:
 
-```shell
+```bash
 $ mkdir packages
 $ git clone git@github.com:greglook/toolkit-common.git packages/common
 ```
@@ -50,7 +50,7 @@ $ git clone git@github.com:greglook/toolkit-common.git packages/common
 Next, run the toolkit script to display which packages are currently selected,
 select any additional packages, and build the toolkit links:
 
-```shell
+```bash
 $ ./toolkit
 $ ./toolkit enable <package> [package ...]
 $ ./toolkit build
@@ -63,7 +63,7 @@ Updates
 -------
 In order to update an installed toolkit, simply pull updates and re-build:
 
-```shell
+```bash
 $ cd ~/util/toolkit/packages/common
 $ git pull
 $ cd ../..
