@@ -12,12 +12,24 @@ class Toolkit
 
     MANIFEST_FILE = 'manifest.rb'.freeze
 
+    # Attempts to load a package set manifest from the given directory. This
+    # function returns a package set on success, or nil if the directory does
+    # not contain a manifest or it fails to load.
+    #
+    # `path`:: package set directory
+    def self.load(path)
+      manifest = path + MANIFEST_FILE
+      Manifest.new(path) if manifest.readable?
+    rescue => e
+      STDERR.puts "Failed to load manifest from #{path}: #{e.message}"
+    end
+
     # Loads the manifest file in the given package set directory.
     #
-    # `name`:: name to identify this package set
-    # `root`:: location containing manifest file and packages
+    # `path`:: location containing manifest file and packages
+    # `name`:: optional name to identify this package set
     # `file`:: optional manifest filename override
-    def initialize(root, name=nil, manifest=MANIFEST_FILE)
+    def initialize(path, name=nil, manifest=MANIFEST_FILE)
       @root = Pathname.new(root).freeze
       raise "No package set located at #{@root}" unless @root.dir?
 
@@ -33,9 +45,14 @@ class Toolkit
 
     private
 
+    # Sets the package set name. Meant to be called from the manifest file.
+    def package_set(name)
+      @name = name
+    end
+
     # Registers a package. Meant to be called from the manifest file.
     def package(name, options={})
-      root = options[:root] || (@root + name)
+      root = @root + name
       @packages[name] = Package.new(name, root, options)
     end
 

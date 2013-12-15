@@ -14,7 +14,7 @@ class Toolkit
 
     # Loads toolkit configuration from the given file path.
     #
-    # +path+:: location of config file to load
+    # `path`:: location of config file to load
     def initialize(path)
       @path = Pathname.new(path)
 
@@ -23,12 +23,24 @@ class Toolkit
       @installed = config['installed'] || []
       @selected  = config['selected']  || {}
       @links     = config['links']     || {}
+
+      @installed.sort!
+    end
+
+    # Checks whether the named package is installed.
+    def installed?(name)
+      @installed.include? name
+    end
+
+    # Checks whether the named package is selected.
+    def selected?(name)
+      @selected[name]
     end
 
     # Saves the toolkit configuration.
-    def save
+    def save!
       config = {
-        'installed' => @installed,
+        'installed' => @installed.sort,
         'selected'  => @selected,
         'links'     => @links
       }
