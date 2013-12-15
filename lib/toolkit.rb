@@ -11,39 +11,46 @@ require 'yaml'
 # Author:: Greg Look
 class Toolkit
   attr_reader :mount, :links
-  attr_reader :manifest, :config
+  attr_reader :package_sets, :config
 
   # Creates a new toolkit object.
   #
-  # +mount+:: directory to install toolkit in.
-  def initialize(mount, manifest, config)
+  # `mount`:: directory to install toolkit in
+  # `package_sets`:: list of package manifests
+  # `config`:: toolkit configuration
+  def initialize(mount, package_sets, config)
     @mount = Pathname.new(mount).realpath.freeze
-    @manifest = manifest
+    @package_sets = package_sets.freeze
     @config = config
 
     @links = @config.links.dup
   end
 
-  # Delegates package access to the manifest.
+  ### PROPERTIES ###
+
+  # Builds a namespaced map of available packages.
   def packages
-    @manifest && @manifest.packages
+    return @packages if @packages
+    @packages = {}
+    @package_sets.values.each do |manifest|
+      manifest.packages.each do |name, package|
+        @packages["#{manifest.name}/#{name}"] = package
+      end
+    end
+    @packages
   end
 
-  # Delegates installed package access to the config.
-  def installed
-    @config && @config.installed
+  # Delegates installed map to config.
+  def installed?(name)
+    @config.installed.include? name
   end
 
-  # Delegates selected package access to the config.
-  def selected
-    @config && @config.selected
+  # Delegates selected map to config.
+  def selected?(name)
+    @config.selected[name]
   end
 
-  # Saves the configuration file.
-  def save
-    @config.save
-    puts "Configuration saved"
-  end
+  ### ACTIONS ###
 
   # Prints debugging information.
   def debug
@@ -59,29 +66,30 @@ class Toolkit
 
   # Prints out information about the toolkit.
   def show
-    puts "Toolkit mounted: #{@mount}"
+    puts "Toolkit mounted at #{@mount}"
     puts ""
     puts "%10s I A S" % "Package"
     puts "%10s -----" % ('-'*10)
     packages.keys.sort.each do |name|
+      package = packages[name]
       puts "%10s %s %s %s" % [
         name,
-        installed.include?(name) && '*' || ' ',
-        packages[name].selected && '*' || ' ',
-        selected[name].nil? && ' ' || selected[name] && 'Y' || 'N'
+        installed?(name) && '*' || ' ',
+        package.active && '*' || ' ',
+        selected?(name).nil? && ' ' || selected?(name) && 'Y' || 'N'
       ]
     end
   end
 
   # Enables or disables a package.
   #
-  # +name+:: name of package to select
-  # +value+:: true to enable a package, false to disable, nil to clear
+  # `name`:: name of package to select
+  # `value`:: true to enable a package, false to disable, nil to clear
   def select(name, value)
     unless packages.include? name
       puts "No package named '#{name}' found"
     else
-      selected[name] = value.nil? ? nil : !!value
+      @config.selected[name] = value.nil? ? nil : !!value
       puts "Package %s %s" % [name, value.nil? && "setting cleared" || value && "enabled" || "disabled"]
     end
   end
@@ -130,6 +138,12 @@ class Toolkit
     @config.installed = active
     @config.links = @links.dup
     @config.save
+  end
+
+  # Saves the configuration file.
+  def save!
+    @config.save
+    puts "Configuration saved"
   end
 
   private

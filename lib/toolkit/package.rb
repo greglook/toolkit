@@ -9,7 +9,7 @@ class Toolkit
   # Author:: Greg Look
   class Package
     attr_reader :name, :source, :dest, :links
-    attr_accessor :selected
+    attr_accessor :active
 
     # Ignored files ensure the directory they are located in is created, but are
     # not linked to from that directory.
@@ -20,7 +20,7 @@ class Toolkit
     # `name`:: package designation
     # `source`:: directory containing the package's files
     # `options`:: hash accepting various optional settings
-    # - `:default`:: if true, package will be selected by default
+    # - `:default`:: if true, package will be active by default
     # - `:when`:: alias for `:default`
     # - `:dotfiles`:: if true, all root-level files in the package will be
     #                 prefixed with a period. Alternately, an array of files may
@@ -31,7 +31,7 @@ class Toolkit
       @name = name.to_s.freeze
       @source = Pathname.new(source).freeze
       @dest = Pathname.new(options[:into] || "").freeze
-      @selected = !!(options[:default] || options[:when])
+      @active = !!(options[:default] || options[:when])
       @links = { }
 
       populate_links do |path|

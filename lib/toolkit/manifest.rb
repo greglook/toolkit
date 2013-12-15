@@ -14,13 +14,14 @@ class Toolkit
 
     # Loads the manifest file in the given package set directory.
     #
+    # `name`:: name to identify this package set
     # `root`:: location containing manifest file and packages
     # `file`:: optional manifest filename override
-    def initialize(root, manifest=MANIFEST_FILE)
+    def initialize(root, name=nil, manifest=MANIFEST_FILE)
       @root = Pathname.new(root).freeze
       raise "No package set located at #{@root}" unless @root.dir?
 
-      @name = @root.basename.freeze
+      @name = (name || @root.basename).freeze
 
       manifest_path = @root + manifest
       raise "No readable package manifest at #{manifest_path}" unless manifest_path.readable?
