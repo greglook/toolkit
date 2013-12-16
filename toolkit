@@ -21,7 +21,7 @@ require 'toolkit'
 # set default options
 $mount = Pathname.new(ENV['HOME'])
 $config_path = Pathname.new(ENV['TOOLKIT_CONFIG'] || (ENV['HOME'] + '/.config/toolkit'))
-#$colorize = true TODO
+$colorize = true
 $verbose = false
 
 # parse command-line options
@@ -31,6 +31,7 @@ options = OptionParser.new do |opts|
   opts.separator "Options:"
   opts.on('-c', "--config FILE", "Set config file location (default: #{$config_path})") {|file| $config_path = Pathname.new(file) }
   opts.on('-m', "--mount DIR", "Set location to install toolkit to (default: #{$mount})") {|dir| $mount = Pathname.new(dir) }
+  opts.on(      "--[no-]colorize", "Display output with ANSI color codes (default: #{$colorize})") {|v| $colorize = v }
   opts.on('-v', "--verbose", "Display additional information") { $verbose = true }
   opts.on('-h', "--help", "Display usage information") { puts opts; exit }
   opts.separator ""
@@ -84,22 +85,20 @@ when 'show'
     puts "Try cloning some into #{PACKAGE_ROOT}"
   else
     indent = "  "
-    ns_width = $packages.values.map{|package| package.namespace.length }.max
-    name_width = $packages.values.map{|package| package.name.length }.max
-    ns_name_width = ns_width + 1 + name_width
+    $packages.keys.sort.each do |name|
+      package = $packages[name]
+      name_color = $config.installed?(name) ? :light_cyan : :cyan
+      status = if $config.selected?(name)
+                 Toolkit::ANSI.colorize('+', :light_green)
+               elsif $config.selected?(name) == false
+                 Toolkit::ANSI.colorize('-', :light_red)
+               elsif package.active?
+                 Toolkit::ANSI.colorize('*', :light_yellow)
+               else
+                 ' '
+               end
 
-    # TODO: improve/colorize this
-    puts "#{indent}%#{ns_name_width}s I A S" % "Package"
-    puts "#{indent}%#{ns_name_width}s -----" % ('-' * ns_name_width)
-    $packages.keys.sort.each do |ns_name|
-      package = $packages[ns_name]
-      puts "#{indent}%#{ns_width}s/%-#{name_width}s %s %s %s" % [
-        package.namespace,
-        package.name,
-        $config.installed?(ns_name) && '*' || ' ',
-        package.active? && '*' || ' ',
-        $config.selected?(ns_name).nil? && ' ' || $config.selected?(ns_name) && 'Y' || 'N'
-      ]
+      puts "#{indent}%s %s" % [status, Toolkit::ANSI.colorize(name, name_color)]
     end
   end
 

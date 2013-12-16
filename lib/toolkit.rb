@@ -1,6 +1,7 @@
 # Defines the Toolkit class.
 
 require 'pathname'
+require 'toolkit/ansi'
 require 'toolkit/config'
 require 'toolkit/manifest'
 require 'yaml'
@@ -54,33 +55,36 @@ module Toolkit
       package && (selected.nil? && package.active? || selected)
     end
 
+    # determine longest package name
+    name_width = packages.keys.map{|name| name.length }.max
+
     # check existing packages
     (config.installed & active).sort.each do |name|
-      log 'CHECK', ":: #{name} ::"
+      log :light_blue, 'CHECK', ANSI.colorize(name, :light_cyan)
       install package_root, packages[name], links, mount
     end
 
     # install new packages
     (active - config.installed).sort.each do |name|
-      log 'INSTALL', ":: #{name} ::"
+      log :light_green, 'INSTALL', ANSI.colorize(name, :light_cyan)
       install package_root, packages[name], links, mount
     end
 
     # remove old packages
     (config.installed - active).sort.each do |name|
-      log 'REMOVE', ":: #{name} ::"
+      log :light_red, 'REMOVE', ANSI.colorize(name, :light_cyan)
     end
 
     # clean dangling symlinks and empty directories
     (config.links.keys - links.keys).sort.each do |path|
       dest = mount + path
       if dest.symlink?
-        log '-LINK', path
+        log :red, '-LINK', path
         dest.delete
       end
       dir = dest.parent
       while dir != mount && dir.directory? && dir.children.empty?
-        log '-DIR', dir.relative_path_from(mount)
+        log :red, '-DIR', dir.relative_path_from(mount)
         dir.delete
         dir = dir.parent
       end
@@ -95,8 +99,10 @@ module Toolkit
 
 
   # Prints a formatted message.
-  def self.log(type, msg)
-    puts "%10s %s" % ["[%s]" % type, msg]
+  def self.log(color, type, msg)
+    spaces = " "*(10 - type.length)
+    header = "[%s]" % ANSI.colorize(type, color)
+    puts "%s%s %s" % [spaces, header, msg]
   end
 
 
@@ -111,13 +117,13 @@ module Toolkit
       # target is an empty directory
       if package.links[from] == true
         if current_link && current_link != true
-          log 'CONFLICT', "#{path} -> #{link} : cannot replace link with directory"
+          log :light_red, 'CONFLICT', "#{path} -> #{link} : cannot replace link with directory"
         else
           links[path.to_s] = true
           if dest.directory?
-            #log 'EXISTS', "#{path}/"
+            log :blue, 'EXISTS', "#{path}/" if $verbose
           else
-            log '+DIR', "#{path}/"
+            log :green, '+DIR', "#{path}/"
             dest.mkpath
           end
         end
@@ -128,30 +134,30 @@ module Toolkit
         src = package_root + target
 
         if links[path] == true
-          log 'CONFLICT', "#{path}/ : cannot replace directory with link to #{target}"
+          log :light_red, 'CONFLICT', "#{path}/ : cannot replace directory with link to #{target}"
         elsif links[path]
-          log 'CONFLICT', "#{path} -> #{links[path]} : existing link conflicts with #{target}"
+          log :light_red, 'CONFLICT', "#{path} -> #{links[path]} : existing link conflicts with #{target}"
         else
           links[path.to_s] = target.to_s
 
           unless dest.parent.directory?
-            log '+DIR', "#{path.parent}/"
+            log :green, '+DIR', "#{path.parent}/"
             dest.parent.mkpath
           end
 
           if dest.symlink?
             if dest.readlink == src
-              #log 'EXISTS', "#{path} -> #{target}"
+              log :blue, 'EXISTS', "#{path} -> #{target}" if $verbose
             else
-              log '~LINK', "#{path} -> #{target}"
+              log :blue, '~LINK', "#{path} -> #{target}"
               dest.delete
               dest.make_symlink(src)
             end
           else
             if dest.exist?
-              log 'CONFLICT', "#{path} : path is a #{dest.ftype}, expected a symlink"
+              log :light_red, 'CONFLICT', "#{path} : path is a #{dest.ftype}, expected a symlink"
             else
-              log '+LINK', "#{path} -> #{target}"
+              log :green, '+LINK', "#{path} -> #{target}"
               dest.make_symlink(src)
             end
           end
