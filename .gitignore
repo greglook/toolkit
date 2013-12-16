@@ -1,2 +1,5 @@
 # ignore package repositories
 /packages/[^.]*
+
+# ignore testing files
+/test
