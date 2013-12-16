@@ -39,21 +39,15 @@ $ git clone git@github.com:greglook/toolkit.git
 $ cd toolkit
 ```
 
-Then clone the desired package sets and link to them from the `packages`
-directory:
+Next clone your desired package sets into the `packages` directory. For
+examples, take a look at [my
+packages](https://github/greglook/toolkit-packages). Once you've got some
+packages, run the toolkit script to display which packages are currently
+active, select any additional packages you'd like, and build the toolkit:
 
 ```bash
-$ mkdir packages
-$ git clone git@github.com:greglook/toolkit-packages.git packages/greg
-$ git clone git@example.com:greg/toolkit-packages.git packages/private
-```
-
-Next, run the toolkit script to display which packages are currently selected,
-select any additional packages, and build the toolkit links:
-
-```bash
-$ ./toolkit
-$ ./toolkit enable <package> [package ...]
+$ ./toolkit show
+$ ./toolkit enable foo/tools bar/zsh
 $ ./toolkit build
 ```
 
@@ -65,7 +59,7 @@ Updates
 In order to update an installed toolkit, simply pull updates and re-build:
 
 ```bash
-$ cd ~/util/toolkit/packages/greg
+$ cd ~/util/toolkit/packages/foo
 $ git pull
 $ cd ../..
 $ ./toolkit build
