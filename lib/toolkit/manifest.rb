@@ -53,7 +53,7 @@ class Toolkit
     # Registers a package. Meant to be called from the manifest file.
     def package(name, options={})
       root = @root + name
-      @packages[name] = Package.new(name, root, options)
+      @packages[name] = Package.new(@name, name, root, options)
     end
 
     # Tests whether a command with the given name exists in the PATH.

@@ -6,164 +6,114 @@ require 'toolkit/manifest'
 require 'yaml'
 
 
-# This is the main class through which the toolkit library is accessed.
+# This class provides some static convenience functions for interacting with
+# the toolkit library.
 #
 # Author:: Greg Look
 class Toolkit
-  attr_reader :mount, :links
-  attr_reader :package_sets, :config
 
-  # Creates a new toolkit object.
+  # Loads multiple package sets from the given directory. Returns a map of
+  # namespaced package names to `Package` objects.
   #
-  # `mount`:: directory to install toolkit in
-  # `package_sets`:: list of package manifests
-  # `config`:: toolkit configuration
-  def initialize(mount, package_sets, config)
-    @mount = Pathname.new(mount).realpath.freeze
-    @package_sets = package_sets.freeze
-    @config = config
-
-    @links = @config.links.dup
-  end
-
-  ### PROPERTIES ###
-
-  # Builds a namespaced map of available packages.
-  def packages
-    return @packages if @packages
-    @packages = {}
-    @package_sets.values.each do |manifest|
-      manifest.packages.each do |name, package|
-        @packages["#{manifest.name}/#{name}"] = package
+  # `package_root`:: directory containing package set directories
+  def self.load_packages(package_root)
+    package_sets = []
+    package_root.children.each do |path|
+      begin
+        manifest = Manifest.load(path)
+        package_sets << manifest if manifest
+      rescue => e
+        STDERR.puts "Failed to load package set from #{path} - #{e.message}"
       end
     end
-    @packages
-  end
 
-  # Delegates installed map to config.
-  def installed?(name)
-    @config.installed.include? name
-  end
-
-  # Delegates selected map to config.
-  def selected?(name)
-    @config.selected[name]
-  end
-
-  ### ACTIONS ###
-
-  # Prints debugging information.
-  def debug
-    puts "Toolkit object:"
-    puts inspect
-    puts ""
-    puts "Links:"
-    length = @config.links.keys.map{|path| path.length }.max
-    @config.links.keys.sort.each do |path|
-      puts "%-#{length}s -> %s" % [path, @config.links[path]]
+    packages = {}
+    package_sets.each do |manifest|
+      manifest.packages.each do |name, package|
+        pkg_name = "#{manifest.name}/#{name}"
+        if packages[pkg_name]
+          STDERR.puts "Package name conflict: #{pkg_name}"
+        else
+          packages[pkg_name] = package
+        end
+      end
     end
+
+    packages
   end
 
-  # Prints out information about the toolkit.
-  def show
-    puts "Toolkit mounted at #{@mount}"
-    puts ""
-    puts "%10s I A S" % "Package"
-    puts "%10s -----" % ('-'*10)
-    packages.keys.sort.each do |name|
-      package = packages[name]
-      puts "%10s %s %s %s" % [
-        name,
-        installed?(name) && '*' || ' ',
-        package.active && '*' || ' ',
-        selected?(name).nil? && ' ' || selected?(name) && 'Y' || 'N'
-      ]
-    end
-  end
-
-  # Enables or disables a package.
-  #
-  # `name`:: name of package to select
-  # `value`:: true to enable a package, false to disable, nil to clear
-  def select(name, value)
-    unless packages.include? name
-      puts "No package named '#{name}' found"
-    else
-      @config.selected[name] = value.nil? ? nil : !!value
-      puts "Package %s %s" % [name, value.nil? && "setting cleared" || value && "enabled" || "disabled"]
-    end
-  end
 
   # Installs all selected packages.
-  def update
-    @links.clear
+  def self.build!(package_root, config, packages, mount)
+    links = {}
 
     # determine active packages
     active = packages.keys.select do |name|
-      selected[name].nil? && packages[name].selected || selected[name]
+      package = packages[name]
+      selected = config.selected?(name)
+      package && (selected.nil? && package.active? || selected)
     end
 
     # check existing packages
-    (installed & active).sort.each do |name|
+    (config.installed & active).sort.each do |name|
       log 'CHECK', ":: #{name} ::"
-      install_links packages[name]
+      install package_root, packages[name], links, mount
     end
 
     # install new packages
-    (active - installed).sort.each do |name|
+    (active - config.installed).sort.each do |name|
       log 'INSTALL', ":: #{name} ::"
-      install_links packages[name]
+      install package_root, packages[name], links, mount
     end
 
     # remove old packages
-    (installed - active).sort.each do |name|
-      log 'REMOVED', ":: #{name} ::"
+    (config.installed - active).sort.each do |name|
+      log 'REMOVE', ":: #{name} ::"
     end
 
-    # clean dangling symlinks
-    (@config.links.keys - @links.keys).sort.each do |path|
-      dest = @mount + path
+    # clean dangling symlinks and empty directories
+    (config.links.keys - links.keys).sort.each do |path|
+      dest = mount + path
       if dest.symlink?
         log '-LINK', path
         dest.delete
       end
       dir = dest.parent
-      while dir != @mount && dir.directory? && dir.children.empty?
-        log '-DIR', dir.relative_path_from(@mount)
+      while dir != mount && dir.directory? && dir.children.empty?
+        log '-DIR', dir.relative_path_from(mount)
         dir.delete
         dir = dir.parent
       end
     end
 
-    @config.installed = active
-    @config.links = @links.dup
-    @config.save
+    config.installed = active
+    config.links = links
   end
 
-  # Saves the configuration file.
-  def save!
-    @config.save
-    puts "Configuration saved"
-  end
 
   private
 
+
   # Prints a formatted message.
-  def log(type, msg)
+  def self.log(type, msg)
     puts "%10s %s" % ["[%s]" % type, msg]
   end
 
-  # Installs the selected package's links.
-  def install_links(package)
+
+  # Installs the selected package by symlinking its files. Updates the given
+  # link map with the new information.
+  def self.install(package_root, package, links, mount)
     package.links.keys.sort.each do |from|
       path = package.dest + from
-      dest = @mount + path
+      dest = mount + path
+      current_link = links[path.to_s]
 
+      # target is an empty directory
       if package.links[from] == true
-        if @links[path] && @links[path] != true
-          log 'CONFLICT', "#{path} -> #{@links[path]} : cannot replace link with directory"
+        if current_link && current_link != true
+          log 'CONFLICT', "#{path} -> #{link} : cannot replace link with directory"
         else
-          @links[path.to_s] = true
+          links[path.to_s] = true
           if dest.directory?
             #log 'EXISTS', "#{path}/"
           else
@@ -171,16 +121,18 @@ class Toolkit
             dest.mkpath
           end
         end
-      elsif package.links[from]
-        target = (package.source + package.links[from]).relative_path_from(@manifest.root)
-        src = @manifest.root + target
 
-        if @links[path] == true
+      # target is a link to a file
+      elsif package.links[from]
+        target = (package.source + package.links[from]).relative_path_from(package_root)
+        src = package_root + target
+
+        if links[path] == true
           log 'CONFLICT', "#{path}/ : cannot replace directory with link to #{target}"
-        elsif @links[path]
-          log 'CONFLICT', "#{path} -> #{@links[path]} : existing link conflicts with #{target}"
+        elsif links[path]
+          log 'CONFLICT', "#{path} -> #{links[path]} : existing link conflicts with #{target}"
         else
-          @links[path.to_s] = target.to_s
+          links[path.to_s] = target.to_s
 
           unless dest.parent.directory?
             log '+DIR', "#{path.parent}/"

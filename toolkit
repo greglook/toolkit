@@ -12,7 +12,7 @@ require 'pathname'
 
 SCRIPT_NAME = File.basename($0)
 TOOLKIT_ROOT = Pathname.new(__FILE__).realpath.dirname
-PACKAGE_SET_ROOT = TOOLKIT_ROOT + 'packages'
+PACKAGE_ROOT = TOOLKIT_ROOT + 'packages'
 
 $: << TOOLKIT_ROOT + 'lib'
 
@@ -21,7 +21,8 @@ require 'toolkit'
 # set default options
 $options = {}
 $options[:mount] = Pathname.new(ENV['HOME'])
-$options[:config] = Pathname.new(ENV['TOOLKIT_CONFIG'] || (ENV['HOME'] + '.config/toolkit'))
+$options[:config] = Pathname.new(ENV['TOOLKIT_CONFIG'] || (ENV['HOME'] + '/.config/toolkit'))
+#$options[:color] = TODO
 
 # parse command-line options
 options = OptionParser.new do |opts|
@@ -33,11 +34,11 @@ options = OptionParser.new do |opts|
   opts.on('-h', "--help", "Display usage information") { puts opts; exit }
   opts.separator ""
   opts.separator "Actions:"
-  opts.separator "    show                 - prints information about selected and installed packages (default action)"
-  opts.separator "    enable <package(s)>  - selects the named packages for installation"
-  opts.separator "    disable <package(s)> - disables installation of the named packages"
-  opts.separator "    default <package(s)> - resets the named packages' selection state"
-  opts.separator "    build                - builds links to the selected package files"
+  opts.separator "    show    - prints information about selected and installed packages (default action)"
+  opts.separator "    enable  - selects the named packages for installation"
+  opts.separator "    disable - disables installation of the named packages"
+  opts.separator "    reset   - resets the named packages' selection state"
+  opts.separator "    build   - builds links to the selected package files"
 end
 options.parse!
 
@@ -47,60 +48,70 @@ def fail(msg, code=1)
   exit code
 end
 
-# load package sets
-package_sets = {}
-PACKAGE_SET_ROOT.children.each do |path|
-  begin
-    manifest_path = path + Toolkit::Manifest::MANIFEST_FILE
-    if manifest_path.readable?
-      package_set = Toolkit::Manifest.new(path)
-      package_sets[package_set.name] = package_set
-    end
-  rescue => e
-    STDERR.puts "Failed to load package set from #{path}: #{e.message}"
-  end
-end
+# initialize toolkit components
+$mount = Pathname.new($options[:mount]).realpath.freeze
+$config = Toolkit::Config.new($options[:config])
+$packages = Toolkit.load_packages(PACKAGE_ROOT)
 
-if package_sets.empty?
-  STDERR.puts "It looks like you don't have any package sets installed!"
-  STDERR.puts "Try cloning some into #{PACKAGE_SET_ROOT}"
-end
-
-# initialize toolkit
-config = Toolkit::Config.new($options[:config])
-$toolkit = Toolkit.new($options[:mount], package_sets, config)
-
-# get action
+# determine action
 $action = ARGV.empty? && 'show' || ARGV.shift.downcase
 
 case $action
 when 'debug'
-  $toolkit.debug
+  puts "Toolkit object:"
+  puts inspect
+  puts ""
+  puts "Links:"
+  length = $config.links.keys.map{|path| path.length }.max
+  $config.links.keys.sort.each do |path|
+    puts "%-#{length}s -> %s" % [path, $config.links[path]]
+  end
 
 when 'show'
-  $toolkit.show
+  puts "Toolkit mounted at #{$mount}"
+  puts ""
 
-when 'enable'
-  fail "Usage: #{SCRIPT_NAME} enable <package> [package ...]" if ARGV.empty?
-  ARGV.each {|package| $toolkit.select package, true }
-  $toolkit.save
-  $toolkit.show
+  if $packages.empty?
+    puts "It looks like you don't have any package sets installed!"
+    puts "Try cloning some into #{PACKAGE_ROOT}"
+  else
+    # TODO: improve/colorize this
+    puts "%10s I A S" % "Package"
+    puts "%10s -----" % ('-'*10)
+    $packages.keys.sort.each do |name|
+      package = $packages[name]
+      puts "%10s %s %s %s" % [
+        name,
+        $config.installed?(name) && '*' || ' ',
+        package.active && '*' || ' ',
+        $config.selected?(name).nil? && ' ' || $config.selected?(name) && 'Y' || 'N'
+      ]
+    end
+  end
 
-when 'disable'
-  fail "Usage: #{SCRIPT_NAME} disable <package> [package ...]" if ARGV.empty?
-  ARGV.each {|package| $toolkit.select package, false }
-  $toolkit.save
-  $toolkit.show
+when 'enable', 'disable', 'reset'
+  fail "Usage: #{SCRIPT_NAME} #{$action} <package> [package ...]" if ARGV.empty?
 
-when 'default'
-  fail "Usage: #{SCRIPT_NAME} default <package> [package ...]" if ARGV.empty?
-  ARGV.each {|package| $toolkit.select package, nil }
-  $toolkit.save
-  $toolkit.show
+  selection_value = case $action
+                    when 'enable' then true
+                    when 'disable' then false
+                    else nil end
+
+  ARGV.each do |name|
+    if $packages.include?(name)
+      $config.selected[name] = selection_value
+      puts "Package %s %s" % [name, value.nil? && "setting cleared" || value && "enabled" || "disabled"]
+    else
+      STDERR.puts "No package named '#{name}' found"
+    end
+  end
+
+  $config.save!
 
 when 'build'
-  $toolkit.update
+  Toolkit.build! PACKAGE_ROOT, $config, $packages, $mount
+  $config.save!
 
 else
-  fail "Unknown action '#{$action}', try: show, enable, disable, default, build"
+  fail "Unknown action '#{$action}', try: show, enable, disable, default, build", 2
 end

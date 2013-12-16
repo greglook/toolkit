@@ -8,8 +8,7 @@ class Toolkit
   #
   # Author:: Greg Look
   class Package
-    attr_reader :name, :source, :dest, :links
-    attr_accessor :active
+    attr_reader :namespace, :name, :source, :dest, :links
 
     # Ignored files ensure the directory they are located in is created, but are
     # not linked to from that directory.
@@ -17,23 +16,26 @@ class Toolkit
 
     # Creates a new package.
     #
-    # `name`:: package designation
-    # `source`:: directory containing the package's files
-    # `options`:: hash accepting various optional settings
-    # - `:default`:: if true, package will be active by default
-    # - `:when`:: alias for `:default`
+    # `namespace`:: name of set containing this package
+    # `name`     :: package designation
+    # `source`   :: directory containing the package's files
+    # `options  `:: hash accepting various optional settings
+    # - `:default` :: if true, package will be active by default
+    # - `:when`    :: alias for `:default`
+    # - `:into`    :: relative path to install package into under the mount
     # - `:dotfiles`:: if true, all root-level files in the package will be
     #                 prefixed with a period. Alternately, an array of files may
     #                 be provided, which will be prefixed if the paths match.
-    def initialize(name, source, options={})
+    def initialize(namespace, name, source, options={})
       raise "Package source root '#{source}' is not a directory" unless File.directory? source
 
+      @namespace = namespace.to_s.freeze
       @name = name.to_s.freeze
       @source = Pathname.new(source).freeze
       @dest = Pathname.new(options[:into] || "").freeze
       @active = !!(options[:default] || options[:when])
-      @links = { }
 
+      @links = { }
       populate_links do |path|
         if options[:dotfiles] == true
           ".#{path.basename}" if path.parent == @source
@@ -42,8 +44,13 @@ class Toolkit
           ".#{path.basename}" if options[:dotfiles].include? relpath.to_s
         end
       end
-
       @links.freeze
+    end
+
+    # Checks whether the package should be installed if the user hasn't
+    # explicitly disabled it.
+    def active?
+      @active
     end
 
     private
