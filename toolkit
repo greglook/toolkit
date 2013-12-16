@@ -19,18 +19,19 @@ $: << TOOLKIT_ROOT + 'lib'
 require 'toolkit'
 
 # set default options
-$options = {}
-$options[:mount] = Pathname.new(ENV['HOME'])
-$options[:config] = Pathname.new(ENV['TOOLKIT_CONFIG'] || (ENV['HOME'] + '/.config/toolkit'))
-#$options[:color] = TODO
+$mount = Pathname.new(ENV['HOME'])
+$config_path = Pathname.new(ENV['TOOLKIT_CONFIG'] || (ENV['HOME'] + '/.config/toolkit'))
+#$colorize = true TODO
+$verbose = false
 
 # parse command-line options
 options = OptionParser.new do |opts|
   opts.banner = "Usage: #{SCRIPT_NAME} [options] [action] [arguments ...]"
   opts.separator ""
   opts.separator "Options:"
-  opts.on('-c', "--config FILE", "Set config file location (default: #{$options[:config]})") {|file| $options[:config] = file }
-  opts.on('-m', "--mount DIR", "Set location to install toolkit to (default: #{$options[:mount]})") {|dir| $options[:mount] = dir }
+  opts.on('-c', "--config FILE", "Set config file location (default: #{$config_path})") {|file| $config_path = Pathname.new(file) }
+  opts.on('-m', "--mount DIR", "Set location to install toolkit to (default: #{$mount})") {|dir| $mount = Pathname.new(dir) }
+  opts.on('-v', "--verbose", "Display additional information") { $verbose = true }
   opts.on('-h', "--help", "Display usage information") { puts opts; exit }
   opts.separator ""
   opts.separator "Actions:"
@@ -49,8 +50,8 @@ def fail(msg, code=1)
 end
 
 # initialize toolkit components
-$mount = Pathname.new($options[:mount]).realpath.freeze
-$config = Toolkit::Config.new($options[:config])
+$mount = $mount.realpath.freeze
+$config = Toolkit::Config.new($config_path)
 $packages = Toolkit.load_packages(PACKAGE_ROOT)
 
 # determine action
@@ -68,23 +69,28 @@ when 'debug'
   end
 
 when 'show'
-  puts "Toolkit mounted at #{$mount}"
-  puts ""
+  if $verbose
+    puts "Toolkit mounted at: #{$mount}"
+    puts "Configuration file: #{$config.path}"
+    puts "Package set root:   #{PACKAGE_ROOT}"
+    puts ""
+  end
 
   if $packages.empty?
     puts "It looks like you don't have any package sets installed!"
     puts "Try cloning some into #{PACKAGE_ROOT}"
   else
+    indent = "  "
     ns_width = $packages.values.map{|package| package.namespace.length }.max
     name_width = $packages.values.map{|package| package.name.length }.max
     ns_name_width = ns_width + 1 + name_width
 
     # TODO: improve/colorize this
-    puts "%#{ns_name_width}s I A S" % "Package"
-    puts "%#{ns_name_width}s -----" % ('-' * ns_name_width)
+    puts "#{indent}%#{ns_name_width}s I A S" % "Package"
+    puts "#{indent}%#{ns_name_width}s -----" % ('-' * ns_name_width)
     $packages.keys.sort.each do |ns_name|
       package = $packages[ns_name]
-      puts "%#{ns_width}s/%-#{name_width}s %s %s %s" % [
+      puts "#{indent}%#{ns_width}s/%-#{name_width}s %s %s %s" % [
         package.namespace,
         package.name,
         $config.installed?(ns_name) && '*' || ' ',
@@ -105,7 +111,8 @@ when 'enable', 'disable', 'reset'
   ARGV.each do |name|
     if $packages.include?(name)
       $config.selected[name] = selection_value
-      puts "Package %s %s" % [name, selection_value.nil? && "setting cleared" || selection_value && "enabled" || "disabled"]
+      change = selection_value.nil? && "setting cleared" || selection_value && "enabled" || "disabled"
+      puts "Package %s %s" % [name, change] if $verbose
     else
       STDERR.puts "No package named '#{name}' found"
     end
