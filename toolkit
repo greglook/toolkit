@@ -75,16 +75,21 @@ when 'show'
     puts "It looks like you don't have any package sets installed!"
     puts "Try cloning some into #{PACKAGE_ROOT}"
   else
+    ns_width = $packages.values.map{|package| package.namespace.length }.max
+    name_width = $packages.values.map{|package| package.name.length }.max
+    ns_name_width = ns_width + 1 + name_width
+
     # TODO: improve/colorize this
-    puts "%10s I A S" % "Package"
-    puts "%10s -----" % ('-'*10)
-    $packages.keys.sort.each do |name|
-      package = $packages[name]
-      puts "%10s %s %s %s" % [
-        name,
-        $config.installed?(name) && '*' || ' ',
-        package.active && '*' || ' ',
-        $config.selected?(name).nil? && ' ' || $config.selected?(name) && 'Y' || 'N'
+    puts "%#{ns_name_width}s I A S" % "Package"
+    puts "%#{ns_name_width}s -----" % ('-' * ns_name_width)
+    $packages.keys.sort.each do |ns_name|
+      package = $packages[ns_name]
+      puts "%#{ns_width}s/%-#{name_width}s %s %s %s" % [
+        package.namespace,
+        package.name,
+        $config.installed?(ns_name) && '*' || ' ',
+        package.active? && '*' || ' ',
+        $config.selected?(ns_name).nil? && ' ' || $config.selected?(ns_name) && 'Y' || 'N'
       ]
     end
   end
@@ -100,7 +105,7 @@ when 'enable', 'disable', 'reset'
   ARGV.each do |name|
     if $packages.include?(name)
       $config.selected[name] = selection_value
-      puts "Package %s %s" % [name, value.nil? && "setting cleared" || value && "enabled" || "disabled"]
+      puts "Package %s %s" % [name, selection_value.nil? && "setting cleared" || selection_value && "enabled" || "disabled"]
     else
       STDERR.puts "No package named '#{name}' found"
     end

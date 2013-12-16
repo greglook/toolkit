@@ -30,8 +30,8 @@ class Toolkit
     # `name`:: optional name to identify this package set
     # `file`:: optional manifest filename override
     def initialize(path, name=nil, manifest=MANIFEST_FILE)
-      @root = Pathname.new(root).freeze
-      raise "No package set located at #{@root}" unless @root.dir?
+      @root = Pathname.new(path).freeze
+      raise "No package set located at #{@root}" unless @root.directory?
 
       @name = (name || @root.basename).freeze
 
