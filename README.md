@@ -41,7 +41,7 @@ $ cd toolkit
 
 Next clone your desired package sets into the `packages` directory. For
 examples, take a look at [my
-packages](https://github/greglook/toolkit-packages). Once you've got some
+packages](https://github.com/greglook/toolkit-packages). Once you've got some
 packages, run the toolkit script to display which packages are currently
 active, select any additional packages you'd like, and build the toolkit:
 
