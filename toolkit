@@ -68,6 +68,9 @@ when 'debug'
     puts "%-#{length}s -> %s" % [path, $config.links[path]]
   end
 
+when 'help'
+  puts options
+
 when 'show'
   if $verbose
     puts "Toolkit mounted at: #{$mount}"
