@@ -44,7 +44,8 @@ directory:
 
 ```bash
 $ mkdir packages
-$ git clone git@github.com:greglook/toolkit-common.git packages/common
+$ git clone git@github.com:greglook/toolkit-packages.git packages/greg
+$ git clone git@example.com:greg/toolkit-packages.git packages/private
 ```
 
 Next, run the toolkit script to display which packages are currently selected,
@@ -64,7 +65,7 @@ Updates
 In order to update an installed toolkit, simply pull updates and re-build:
 
 ```bash
-$ cd ~/util/toolkit/packages/common
+$ cd ~/util/toolkit/packages/greg
 $ git pull
 $ cd ../..
 $ ./toolkit build
