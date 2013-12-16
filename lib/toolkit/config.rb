@@ -39,6 +39,10 @@ module Toolkit
 
     # Saves the toolkit configuration.
     def save!
+      @selected.keys.each do |name|
+        @selected.delete(name) if @selected[name].nil?
+      end
+
       config = {
         'installed' => @installed.sort,
         'selected'  => @selected,
