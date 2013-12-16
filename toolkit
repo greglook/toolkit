@@ -60,8 +60,25 @@ $action = ARGV.empty? && 'show' || ARGV.shift.downcase
 
 case $action
 when 'debug'
-  puts "Toolkit object:"
-  puts inspect
+  puts "Active packages:"
+  $packages.keys.sort.each do |name|
+    puts "* #{name}" if $packages[name].active?
+  end
+  puts ""
+  puts "Enabled packages:"
+  $config.selected.keys.sort.each do |name|
+    puts "+ #{name}" if $config.selected[name]
+  end
+  puts ""
+  puts "Disabled packages:"
+  $config.selected.keys.sort.each do |name|
+    puts "- #{name}" if $config.selected[name] == false
+  end
+  puts ""
+  puts "Installed packages:"
+  $config.installed.sort.each do |name|
+    puts "  #{name}"
+  end
   puts ""
   puts "Links:"
   length = $config.links.keys.map{|path| path.length }.max
