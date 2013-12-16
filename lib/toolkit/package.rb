@@ -2,7 +2,7 @@
 
 require 'pathname'
 
-class Toolkit
+module Toolkit
   # A package is a unit of related, deployable files. These may be environment
   # customizations, configuration files, scripts, and so on.
   #

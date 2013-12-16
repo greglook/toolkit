@@ -3,7 +3,7 @@
 require 'pathname'
 require 'yaml'
 
-class Toolkit
+module Toolkit
   # A class to manage user-specific toolkit configuration and other persistent
   # state.
   #

@@ -3,7 +3,7 @@
 require 'pathname'
 require 'toolkit/package'
 
-class Toolkit
+module Toolkit
   # A package set is a collection of packages, defined by a manifest file.
   #
   # Author:: Greg Look

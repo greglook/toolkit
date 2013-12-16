@@ -10,7 +10,7 @@ require 'yaml'
 # the toolkit library.
 #
 # Author:: Greg Look
-class Toolkit
+module Toolkit
 
   # Loads multiple package sets from the given directory. Returns a map of
   # namespaced package names to `Package` objects.
