@@ -54,7 +54,8 @@ package 'synergy', :into => 'util/synergy'
 ```
 
 The package definitions should be placed in `manifest.rb` in the package set
-directory.
+directory. For more examples, take a look at [my
+packages](https://github.com/greglook/toolkit-packages).
 
 Usage
 -----
@@ -67,11 +68,10 @@ $ git clone git@github.com:greglook/toolkit.git
 $ cd toolkit
 ```
 
-Next clone your desired package sets into the `packages` directory. For
-examples, take a look at [my
-packages](https://github.com/greglook/toolkit-packages). Once you've got some
-packages, run the toolkit script to display which packages are currently
-active, select any additional packages you'd like, and build the toolkit:
+Next clone your desired package sets into the `packages` directory. Once you've
+got some packages, run the toolkit script to display which packages are
+currently active, select any additional packages you'd like, and install the
+package symlinks:
 
 ```bash
 $ ./toolkit show
