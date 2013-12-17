@@ -18,15 +18,43 @@ Packages may be _selected_ for installation; some are selected by default,
 others based on environment detection, and you can of course manually set any
 package's selection state.
 
-Packages are further separated into _package sets_ based on their directory
-structure. This is primarily to allow for the package files to be maintained
-separately from the toolkit code itself. This way you can install packages from
-multiple sources, and potentially keep sensitive configs in non-public repos.
-
 Package installation creates symlinks from the user's `$HOME` directory to the
 files in the toolkit package. Thus, edits to the normal file paths are also
 edits to the git repository, which can then be committed and shared with the
 toolkits on other hosts.
+
+Package Sets
+------------
+Packages are further separated into _package sets_. This is primarily to allow
+for the package files to be maintained separately from the toolkit code itself.
+This way you can also install packages from multiple sources, and keep sensitive
+packages in non-public repositories.
+
+A package set consists of a directory of packages with a _manifest file_. This
+is written in a simple Ruby DSL to define the available packages. Below are
+some examples which show the package options:
+
+```ruby
+# A simple package with no options.
+package 'foo'
+
+# Packages installed by default, when the command 'tmux' is installed, and when
+# the shell is 'zsh', respectively.
+package 'tools', :default => true
+package 'tmux', :dotfiles => true, :when => installed?('tmux')
+package 'zsh', :dotfiles => true, :when => ( File.basename(ENV['SHELL']) == 'zsh' )
+
+# Packages may prefix all files with periods or provide an explicit list of
+# entries to convert into hidden files.
+package 'vim', :dotfiles => true, :when => installed?('vim')
+package 'solarized', :dotfiles => ['vim', 'zsh']
+
+# This will install into a subpath of the mount point.
+package 'synergy', :into => 'util/synergy'
+```
+
+The package definitions should be placed in `manifest.rb` in the package set
+directory.
 
 Usage
 -----
