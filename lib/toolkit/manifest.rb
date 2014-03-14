@@ -56,6 +56,16 @@ module Toolkit
       @packages[name] = Package.new(@name, name, root, options)
     end
 
+    # Tests whether the given file exists.
+    def file?(*path)
+      File.exist?(File.join(*path))
+    end
+
+    # Tests whether the basename of the current shell matches the argument.
+    def shell?(name)
+      File.basename(ENV['SHELL']) == name
+    end
+
     # Tests whether a command with the given name exists in the PATH.
     def installed?(command)
       `which #{command} 2> /dev/null`
