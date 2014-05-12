@@ -35,6 +35,13 @@ module Toolkit
       @dest = Pathname.new(options[:into] || "").freeze
       @active = !!(options[:default] || options[:when])
 
+      # Special case user@host packages.
+      if name =~ /([^@]*)@(.*)/
+        user_match = $1.empty? || ($1 == ENV['USER'])
+        host_match = $2.empty? || ($2 == %x{hostname}.chomp)
+        @active = true if user_match && host_match
+      end
+
       @links = { }
       populate_links do |path|
         if options[:dotfiles] == true

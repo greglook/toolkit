@@ -51,6 +51,11 @@ package 'solarized', :dotfiles => ['vim', 'zsh']
 
 # This will install into a subpath of the mount point.
 package 'synergy', :into => 'util/synergy'
+
+# Package names with an '@' are special-cased:
+package 'foo@'    # Automatically enabled for users named 'foo'.
+package '@bar'    # Enabled on host 'bar'.
+package 'foo@bar' # Enabled for user 'foo' on host 'bar'.
 ```
 
 The package definitions should be placed in `manifest.rb` in the package set
