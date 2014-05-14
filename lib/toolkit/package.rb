@@ -37,8 +37,10 @@ module Toolkit
 
       # Special case user@host packages.
       if name =~ /([^@]*)@(.*)/
-        user_match = $1.empty? || ($1 == ENV['USER'])
-        host_match = $2.empty? || ($2 == %x{hostname}.chomp)
+        hostname = %x{hostname}.chomp
+        hostnames = [hostname, hostname.split('.').first]
+        user_match = $1.empty? || (ENV['USER'] == $1)
+        host_match = $2.empty? || (hostnames.include? $2)
         @active = true if user_match && host_match
       end
 

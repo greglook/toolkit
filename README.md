@@ -38,11 +38,17 @@ some examples which show the package options:
 # A simple package with no options.
 package 'foo'
 
-# Packages installed by default, when the command 'tmux' is installed, and when
-# the shell is 'zsh', respectively.
+# Packages installed by default, when the shell is 'zsh', when the command
+# 'tmux' is installed, when the and when ~/.rbenv exists, respectively.
 package 'tools', :default => true
-package 'tmux', :dotfiles => true, :when => installed?('tmux')
-package 'zsh', :dotfiles => true, :when => ( File.basename(ENV['SHELL']) == 'zsh' )
+package 'zsh',   :when => shell?('zsh')
+package 'tmux',  :when => installed?('tmux')
+package 'rbenv', :when => file?(ENV['HOME'], '.rbenv')
+
+# Package names with an '@' are special-cased:
+package 'foo@'        # Automatically enabled for users named 'foo'.
+package '@bar'        # Enabled on host 'bar', 'bar.tld', etc.
+package 'foo@bar.tld' # Enabled for user 'foo' on host 'bar.tld' only.
 
 # Packages may prefix all files with periods or provide an explicit list of
 # entries to convert into hidden files.
@@ -51,11 +57,6 @@ package 'solarized', :dotfiles => ['vim', 'zsh']
 
 # This will install into a subpath of the mount point.
 package 'synergy', :into => 'util/synergy'
-
-# Package names with an '@' are special-cased:
-package 'foo@'    # Automatically enabled for users named 'foo'.
-package '@bar'    # Enabled on host 'bar'.
-package 'foo@bar' # Enabled for user 'foo' on host 'bar'.
 ```
 
 The package definitions should be placed in `manifest.rb` in the package set
