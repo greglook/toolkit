@@ -70,13 +70,19 @@ into a local folder:
 
 ```bash
 $ mkdir ~/util && cd ~/util
-$ git clone git@github.com:greglook/toolkit.git
+$ git clone https://github.com/greglook/toolkit.git
 $ cd toolkit
 ```
 
-Next clone your desired package sets into the `packages` directory. Once you've
-got some packages, run the toolkit script to display which packages are
-currently active, select any additional packages you'd like, and install the
+Next clone your desired package sets into the `packages` directory:
+
+```bash
+$ git clone https://github.com/$USER/toolkit-packages.git packages/$USER
+$ git clone git@git.myserver.com:myprivate-packages.git packages/private
+```
+
+Once you've got some packages, run the toolkit script to display which packages
+are currently active, select any additional packages you'd like, and install the
 package symlinks:
 
 ```bash
