@@ -68,8 +68,7 @@ module Toolkit
 
     # Tests whether the OS matches the argument.
     def os?(osName)
-      os = `uname -s`.strip
-      os.eql?osName
+      `uname -s`.strip == osName
     end
 
     # Tests whether a command with the given name exists in the PATH.
