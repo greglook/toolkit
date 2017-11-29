@@ -66,6 +66,11 @@ module Toolkit
       File.basename(ENV['SHELL']) == name
     end
 
+    # Tests whether the OS matches the argument.
+    def os?(osName)
+      `uname -s`.strip == osName
+    end
+
     # Tests whether a command with the given name exists in the PATH.
     def installed?(command)
       `which #{command} 2> /dev/null`
